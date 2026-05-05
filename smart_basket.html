@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Basket — Grocery Price Comparator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0d;--bg2:#181816;--bg3:#1f1f1c;--bg4:#252522;
+  --text:#f0ede6;--text2:#a09d96;--text3:#6b6860;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.08);
+  --blue:#60a5fa;--blue-bg:rgba(96,165,250,0.1);
+  --purple:#c084fc;--purple-bg:rgba(192,132,252,0.1);
+  --blinkit:#F8CE00;--swiggy:#FC8019;--zepto:#a78bfa;
+  --r:10px;
+}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:13px 18px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.topbar-logo{font-size:18px}
+.topbar-title{font-size:15px;font-weight:600;letter-spacing:-.02em}
+.topbar-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+.main{max-width:560px;margin:0 auto;padding:16px 14px 60px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+
+/* INPUTS */
+input[type=text],input[type=number]{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;
+  padding:10px 14px;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+input[type=text]:focus,input[type=number]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(96,165,250,.12)}
+input[type=text]{width:100%}
+
+/* SEARCH */
+.search-row{display:flex;gap:8px}
+.search-wrap{position:relative;flex:1}
+.search-input-wrap{position:relative}
+.search-spinner{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;display:none}
+.search-spinner.show{display:block}
+
+/* SUGGESTIONS DROPDOWN */
+.suggestions{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);
+  z-index:200;overflow:hidden;
+  box-shadow:0 20px 50px rgba(0,0,0,.7);
+  max-height:400px;overflow-y:auto;
+}
+.sug-section-label{
+  font-size:9.5px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:10px 14px 5px;display:flex;align-items:center;gap:6px;
+}
+.sug-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;cursor:pointer;transition:background .1s;
+  border-radius:0;
+}
+.sug-item:hover,.sug-item.focused{background:var(--bg3)}
+.sug-emoji{font-size:18px;width:24px;text-align:center;flex-shrink:0}
+.sug-info{flex:1;min-width:0}
+.sug-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug-meta{font-size:10.5px;color:var(--text3);margin-top:1px}
+.sug-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.badge-past{background:rgba(74,222,128,.12);color:var(--green)}
+.badge-ai{background:rgba(96,165,250,.12);color:var(--blue)}
+.sug-divider{height:1px;background:var(--border);margin:3px 0}
+.sug-empty{padding:16px 14px;font-size:12px;color:var(--text3);text-align:center}
+.sug-typing{padding:12px 14px;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px}
+.sug-typing-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);animation:pulse 1s infinite}
+.sug-typing-dot:nth-child(2){animation-delay:.2s}
+.sug-typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* PLATFORM PILLS in suggestions */
+.sug-platforms{display:flex;gap:3px;margin-top:3px}
+.plat-pill{font-size:9px;padding:1px 5px;border-radius:20px;font-weight:500}
+.pill-b{background:rgba(248,206,0,.12);color:var(--blinkit)}
+.pill-s{background:rgba(252,128,25,.12);color:var(--swiggy)}
+.pill-z{background:rgba(167,139,250,.12);color:var(--zepto)}
+
+/* BUTTONS */
+.btn{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;padding:10px 16px;transition:.15s;white-space:nowrap}
+.btn:hover{background:var(--bg4);border-color:rgba(255,255,255,.2)}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--text);color:var(--bg);border-color:var(--text);width:100%;font-size:14px;font-weight:600;padding:13px;border-radius:var(--r);margin-top:2px}
+.btn-primary:hover{opacity:.88;background:var(--text)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+
+/* CART */
+.cart-list{display:flex;flex-direction:column;gap:8px;min-height:44px}
+.cart-empty{color:var(--text3);font-size:13px;padding:6px 0;display:flex;align-items:center;gap:8px}
+.chip{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;animation:slideIn .15s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.chip-emoji{font-size:17px;flex-shrink:0}
+.chip-info{flex:1;min-width:0}
+.chip-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.qty-controls{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.qty-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:.1s;font-family:'DM Sans',system-ui,sans-serif;line-height:1}
+.qty-btn:hover{background:var(--bg);border-color:rgba(255,255,255,.25)}
+.qty-display{width:26px;text-align:center;font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text)}
+.chip-remove{background:none;border:none;color:var(--text3);font-size:15px;cursor:pointer;padding:0;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0;transition:.1s}
+.chip-remove:hover{background:var(--red-bg);color:var(--red)}
+
+/* LOADING */
+.loading{text-align:center;padding:2.5rem;color:var(--text2);font-size:13px}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--text2);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PLATFORM CARDS */
+.platform-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.pcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;transition:.2s}
+.pcard.best{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.pcard-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.pdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pname{font-size:11px;font-weight:600;color:var(--text2)}
+.ptotal{font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.pmrp{font-size:10px;color:var(--text3);text-decoration:line-through;margin-top:2px}
+.poff{display:inline-flex;align-items:center;margin-top:5px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--amber-bg);color:var(--amber)}
+.pbest-tag{display:inline-flex;align-items:center;gap:3px;margin-top:5px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--green-bg);color:var(--green)}
+
+/* BREAKDOWN TABLE */
+.bk-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.bk-table th{text-align:left;font-size:9.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid var(--border)}
+.bk-table td{padding:11px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.bk-table tr:last-child td{border-bottom:none}
+.bk-table tr:hover td{background:rgba(255,255,255,.015)}
+.item-n{font-weight:500;line-height:1.3}
+.item-u{font-size:10px;color:var(--text3);margin-top:2px}
+.item-qty-badge{display:inline-block;margin-top:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(96,165,250,.12);color:var(--blue);font-family:'DM Mono',monospace}
+.psell{font-weight:600;display:block;font-size:13px}
+.psell.best{color:var(--green)}
+.psell.worst{color:var(--text3)}
+.pmrp-s{font-size:10px;color:var(--text3);text-decoration:line-through;display:block;margin-top:1px}
+.poff-s{font-size:10px;font-weight:600;color:var(--amber);display:inline-block;margin-top:2px}
+.punit-s{font-size:10px;color:var(--text3);display:block;margin-top:1px;font-family:'DM Mono',monospace}
+
+/* SPLIT STRATEGY */
+.split-item{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px}
+.split-item:last-of-type{border-bottom:none}
+.si-name{font-weight:500;font-size:13px}
+.si-from{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.si-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.si-plat{font-size:11px;color:var(--text2)}
+.si-qty{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+.si-right{text-align:right;flex-shrink:0}
+.si-price{font-size:13px;font-weight:600}
+.si-mrp{font-size:10px;color:var(--text3);text-decoration:line-through}
+.split-footer{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-end}
+.sf-label{font-size:12px;color:var(--text2)}
+.sf-savings{font-size:11px;margin-top:4px;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:var(--green-bg);color:var(--green);font-weight:600}
+.sf-total{font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--green)}
+.sf-saved{font-size:11px;color:var(--green);margin-top:2px;text-align:right}
+
+/* OFFERS */
+.offer-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px}
+.offer-card:last-child{margin-bottom:0}
+.offer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.offer-name{font-size:12px;font-weight:600}
+.offer-save{font-size:13px;font-weight:700;color:var(--green);white-space:nowrap}
+.offer-desc{font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:6px}
+.offer-tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
+.tag-platform{background:rgba(255,255,255,.06);color:var(--text2)}
+.tag-action{background:var(--amber-bg);color:var(--amber)}
+.tag-min{background:rgba(255,255,255,.06);color:var(--text3)}
+
+/* COUPON BOOST */
+.boost-card{background:linear-gradient(135deg,rgba(192,132,252,.08),rgba(96,165,250,.06));border:1px solid rgba(192,132,252,.2);border-radius:var(--r);padding:14px;margin-bottom:8px}
+.boost-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.boost-title{font-size:12px;font-weight:600;color:var(--purple)}
+.boost-body{font-size:12px;color:var(--text2);line-height:1.6}
+.boost-cta{margin-top:8px;font-size:11px;font-weight:600;color:var(--purple);background:var(--purple-bg);padding:3px 10px;border-radius:20px;display:inline-block}
+
+/* SECTION HEAD */
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sec-icon{font-size:14px}
+.sec-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+
+.error-msg{color:var(--red);font-size:13px;text-align:center;padding:1rem 0}
+.note{font-size:10.5px;color:var(--text3);text-align:center;padding:8px 0 4px;line-height:1.5}
+
+/* SUMMARY */
+.summary-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+.summary-row.total{font-size:15px;font-weight:700;padding-top:10px;margin-top:4px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">🛒</div>
+  <div>
+    <div class="topbar-title">Smart Basket</div>
+    <div class="topbar-sub">AI suggestions · Real prices · Best card deals</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SEARCH -->
+  <div class="card">
+    <div class="card-label">Search Products</div>
+    <div class="search-row">
+      <div class="search-wrap">
+        <div class="search-input-wrap">
+          <input type="text" id="searchInput"
+            placeholder="Type any product — milk, maggi, diapers…"
+            autocomplete="off" autocorrect="off" spellcheck="false"/>
+          <div class="search-spinner" id="searchSpinner"></div>
+        </div>
+        <div class="suggestions" id="suggestions" style="display:none"></div>
+      </div>
+      <button class="btn" id="addBtn" onclick="addItemFromInput()">+ Add</button>
+    </div>
+  </div>
+
+  <!-- BASKET -->
+  <div class="card">
+    <div class="card-label">Your Basket <span id="basketCount" style="color:var(--text3);font-weight:400"></span></div>
+    <div class="cart-list" id="cartList">
+      <div class="cart-empty">🛍️ &nbsp;Nothing here yet — search above to add items</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="compareBtn" onclick="runComparison()">Find Best Prices →</button>
+
+  <div id="resultsArea" style="margin-top:14px"></div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   YOUR REAL ZEPTO PAST ORDERS
+══════════════════════════════════════════════ */
+const PAST_ORDERS = [
+  {n:"Nandini Standardized Fresh Milk Pouch",e:"🥛",freq:4,meta:"Ordered 4× on Zepto"},
+  {n:"Amul Pure Ghee Carton",e:"🫙",freq:3,meta:"Ordered 3× on Zepto"},
+  {n:"Onion",e:"🧅",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Capsicum Green",e:"🫑",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Cabbage",e:"🥬",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Bottle Gourd",e:"🥒",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Chilli Green",e:"🌶️",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Parle Monaco Classic Cheeslings",e:"🍪",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Nandini Pure Ghee Pouch",e:"🫙",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Nestle Kitkat 4 Fingers",e:"🍫",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Stayfree Secure Sanitary Pads XL 18pcs",e:"🩸",freq:2,meta:"Ordered 2× on Zepto"},
+  {n:"Ginger",e:"🫚",freq:1,meta:"Ordered on Zepto"},
+  {n:"Garlic",e:"🧄",freq:1,meta:"Ordered on Zepto"},
+  {n:"Cucumber English",e:"🥒",freq:1,meta:"Ordered on Zepto"},
+  {n:"Tomato Local",e:"🍅",freq:1,meta:"Ordered on Zepto"},
+  {n:"Kissan Mixed Fruit Jam",e:"🍓",freq:1,meta:"Ordered on Zepto"},
+  {n:"Aashirvaad Superior MP Wheat Atta",e:"🌾",freq:1,meta:"Ordered on Zepto"},
+  {n:"MyFitness Chocolate Peanut Butter Crunchy",e:"🥜",freq:1,meta:"Ordered on Zepto"},
+  {n:"Coriander Leaves",e:"🌿",freq:1,meta:"Ordered on Zepto"},
+  {n:"24 Mantra Organic Jaggery Powder",e:"🍯",freq:1,meta:"Ordered on Zepto"},
+  {n:"Carrot Local",e:"🥕",freq:1,meta:"Ordered on Zepto"},
+  {n:"Nandini Curd Pouch",e:"🥛",freq:1,meta:"Ordered on Zepto"},
+  {n:"Daawat Rozana Super Basmati Rice 1kg",e:"🍚",freq:1,meta:"Ordered on Zepto"},
+  {n:"Fortune Sunlite Refined Sunflower Oil Pouch",e:"🫙",freq:1,meta:"Ordered on Zepto"},
+  {n:"Huggies Wonder Pant Style Diaper XL 26pcs",e:"👶",freq:1,meta:"Ordered on Zepto"},
+  {n:"Sweet Corn",e:"🌽",freq:1,meta:"Ordered on Zepto"},
+  {n:"Lady Finger",e:"🌿",freq:1,meta:"Ordered on Zepto"},
+  {n:"Lemon",e:"🍋",freq:1,meta:"Ordered on Zepto"},
+  {n:"Amul Processed Cheese Block",e:"🧀",freq:1,meta:"Ordered on Zepto"},
+  {n:"Banana Elaichi Yelakki",e:"🍌",freq:1,meta:"Ordered on Zepto"},
+  {n:"MAGGI 2-Minute Instant Noodles Masala",e:"🍜",freq:1,meta:"Ordered on Zepto"},
+  {n:"Mint Leaves",e:"🌿",freq:1,meta:"Ordered on Zepto"},
+  {n:"Dettol Liquid Disinfectant Floor Cleaner",e:"🧴",freq:1,meta:"Ordered on Zepto"},
+  {n:"Cetaphil Baby Wash and Shampoo",e:"🧴",freq:1,meta:"Ordered on Zepto"},
+  {n:"SuperBottoms Baby Wipes 72pcs",e:"🧻",freq:1,meta:"Ordered on Zepto"},
+  {n:"Moov Fast Pain Relief Spray",e:"💊",freq:1,meta:"Ordered on Zepto"},
+  {n:"Fortune Besan",e:"🫘",freq:1,meta:"Ordered on Zepto"},
+  {n:"Yogabar Multigrain Energy Bars",e:"🍫",freq:1,meta:"Ordered on Zepto"},
+  {n:"Haldirams Mini Bhakarwadi",e:"🍿",freq:1,meta:"Ordered on Zepto"},
+  {n:"Vicks Vaporub Xtra Strong Balm",e:"💊",freq:1,meta:"Ordered on Zepto"},
+  {n:"Nestle Lactogen Pro 2 Follow-Up Formula",e:"🍼",freq:1,meta:"Ordered on Zepto"},
+  {n:"Glucon-D Tangy Orange",e:"🧃",freq:1,meta:"Ordered on Zepto"},
+  {n:"Eveready Carbon Zinc AA Batteries",e:"🔋",freq:1,meta:"Ordered on Zepto"},
+];
+
+/* ══════════════════════════════════════════════
+   CARD OFFERS
+══════════════════════════════════════════════ */
+const CARD_OFFERS = [
+  {id:"hdfc_swiggy",card:"HDFC Swiggy Credit Card",platform:"swiggy",rate:.10,cap:1500,minOrder:249,
+   desc:"10% cashback on all Swiggy Instamart orders (up to ₹1,500/month)",
+   tags:["Swiggy","HDFC"],condition:"Use HDFC Swiggy CC at checkout"},
+  {id:"hdfc_blinkit",card:"HDFC Swiggy CC on Blinkit",platform:"blinkit",rate:.05,cap:250,minOrder:0,
+   desc:"5% cashback on Blinkit (online spend category, up to ₹250/order)",
+   tags:["Blinkit","HDFC"],condition:"Use HDFC CC at Blinkit"},
+  {id:"idfc_swyp",card:"IDFC FIRST SWYP Card",platform:"zepto",rate:.10,cap:100,minOrder:750,
+   desc:"10% instant discount on Zepto orders above ₹750 (up to ₹100 off, once/month)",
+   tags:["Zepto","IDFC"],condition:"Pay with IDFC FIRST on Zepto"},
+  {id:"idfc_fri",card:"IDFC FIRST Credit Card",platform:"zepto",rate:.10,cap:100,minOrder:999,
+   desc:"Flat ₹100 off on Zepto orders above ₹999 (Fridays only)",
+   tags:["Zepto","IDFC","Fridays only"],condition:"Valid on Fridays"},
+  {id:"amazon_pay",card:"Amazon Pay (Prime)",platform:"blinkit",rate:.05,cap:999,minOrder:0,
+   desc:"5% Amazon Pay cashback for Prime members via Amazon Pay on Blinkit",
+   tags:["Blinkit","Amazon Pay"],condition:"Link Amazon Pay to Blinkit"},
+];
+
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+const cart = [];
+let searchDebounceTimer = null;
+let currentAiSuggestions = [];
+let isSearching = false;
+let pendingQuery = '';
+
+const searchInput = document.getElementById('searchInput');
+const suggestionsEl = document.getElementById('suggestions');
+const searchSpinner = document.getElementById('searchSpinner');
+
+/* ══════════════════════════════════════════════
+   PAST ORDER LOCAL FUZZY MATCH
+══════════════════════════════════════════════ */
+function fuzzyScore(text, q) {
+  text = text.toLowerCase(); q = q.toLowerCase();
+  if (text.startsWith(q)) return 3;
+  if (text.includes(q)) return 2;
+  const words = text.split(/[\s|,]+/);
+  if (words.some(w => w.startsWith(q))) return 1.5;
+  let qi = 0;
+  for (let c of text) { if (c === q[qi]) qi++; if (qi === q.length) return 0.5; }
+  return 0;
+}
+
+function getPastMatches(q) {
+  const added = new Set(cart.map(i => i.name.toLowerCase()));
+  return PAST_ORDERS
+    .map(p => ({...p, score: fuzzyScore(p.n, q) * (1 + p.freq * 0.15)}))
+    .filter(p => p.score > 0 && !added.has(p.n.toLowerCase()))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
+/* ══════════════════════════════════════════════
+   AI SUGGESTIONS via Claude API
+══════════════════════════════════════════════ */
+async function fetchAISuggestions(query) {
+  const added = new Set(cart.map(i => i.name.toLowerCase()));
+  const addedList = [...added].join(', ');
+
+  const prompt = `You are a smart Indian grocery product search assistant for Blinkit, Swiggy Instamart, and Zepto.
+
+The user typed: "${query}"
+
+Return ONLY a JSON array (no markdown, no backticks) of up to 6 matching grocery products:
+[
+  {
+    "name": "Amul Taza Homogenised Toned Milk",
+    "emoji": "🥛",
+    "variant": "500ml",
+    "platforms": ["blinkit","swiggy","zepto"],
+    "category": "Dairy"
+  }
+]
+
+Rules:
+- Match real Indian grocery products sold on Blinkit/Swiggy/Zepto
+- Include brand name + variant/size where relevant (e.g. "Amul Butter 100g", "Daawat Basmati Rice 1kg")
+- "platforms" = which platforms carry this product (most items are on all 3)
+- Pick a relevant emoji
+- Sort by most likely match first
+- Skip any already in cart: ${addedList || 'none'}
+- If query is very short (1-2 chars) still return best guesses
+- Return ONLY valid JSON array, nothing else`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      messages: [{role: "user", content: prompt}]
+    })
+  });
+  const data = await res.json();
+  const text = data.content.map(c => c.text || '').join('');
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
+/* ══════════════════════════════════════════════
+   RENDER SUGGESTIONS
+══════════════════════════════════════════════ */
+function renderSuggestions(pastMatches, aiSuggestions, isLoading) {
+  let html = '';
+
+  if (pastMatches.length) {
+    html += `<div class="sug-section-label">⭐ Your past orders</div>`;
+    pastMatches.forEach(p => {
+      html += `<div class="sug-item" onclick="selectSug(${JSON.stringify(p.n)}, ${JSON.stringify(p.e)}, ${JSON.stringify(p.meta)})">
+        <div class="sug-emoji">${p.e}</div>
+        <div class="sug-info">
+          <div class="sug-name">${p.n}</div>
+          <div class="sug-meta">${p.meta}</div>
+        </div>
+        <span class="sug-badge badge-past">Past order</span>
+      </div>`;
+    });
+  }
+
+  if (isLoading) {
+    if (pastMatches.length) html += `<div class="sug-divider"></div>`;
+    html += `<div class="sug-typing">
+      <div class="sug-typing-dot"></div>
+      <div class="sug-typing-dot"></div>
+      <div class="sug-typing-dot"></div>
+      <span style="font-size:11px;color:var(--text3);margin-left:2px">Finding products across Blinkit, Swiggy & Zepto…</span>
+    </div>`;
+  } else if (aiSuggestions.length) {
+    if (pastMatches.length) html += `<div class="sug-divider"></div>`;
+    html += `<div class="sug-section-label">🤖 Products across all platforms</div>`;
+    aiSuggestions.forEach(p => {
+      const platforms = p.platforms || ['blinkit','swiggy','zepto'];
+      const pills = platforms.map(pl => {
+        const cls = pl === 'blinkit' ? 'pill-b' : pl === 'swiggy' ? 'pill-s' : 'pill-z';
+        const lbl = pl === 'blinkit' ? 'Blinkit' : pl === 'swiggy' ? 'Swiggy' : 'Zepto';
+        return `<span class="plat-pill ${cls}">${lbl}</span>`;
+      }).join('');
+      const meta = p.variant ? `${p.category || 'Grocery'} · ${p.variant}` : (p.category || 'Grocery');
+      const safeName = p.name.replace(/'/g, "\\'").replace(/"/g, '\\"');
+      const safeEmoji = p.emoji.replace(/'/g, "\\'");
+      const safeMeta = meta.replace(/'/g, "\\'");
+      html += `<div class="sug-item" onclick="selectSug('${safeName}', '${safeEmoji}', '${safeMeta}')">
+        <div class="sug-emoji">${p.emoji}</div>
+        <div class="sug-info">
+          <div class="sug-name">${p.name}</div>
+          <div class="sug-platforms">${pills}</div>
+        </div>
+        <span class="sug-badge badge-ai">AI</span>
+      </div>`;
+    });
+  } else if (!isLoading && !pastMatches.length) {
+    html += `<div class="sug-empty">No products found — try a different search</div>`;
+  }
+
+  suggestionsEl.innerHTML = html;
+  suggestionsEl.style.display = (html || isLoading) ? 'block' : 'none';
+}
+
+/* ══════════════════════════════════════════════
+   SEARCH HANDLER
+══════════════════════════════════════════════ */
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  clearTimeout(searchDebounceTimer);
+
+  if (!q) {
+    suggestionsEl.style.display = 'none';
+    searchSpinner.classList.remove('show');
+    return;
+  }
+
+  // Instant: show past matches immediately
+  const pastMatches = getPastMatches(q);
+  renderSuggestions(pastMatches, [], true); // show loading state
+
+  searchSpinner.classList.add('show');
+
+  // Debounce AI call — 400ms after user stops typing
+  searchDebounceTimer = setTimeout(async () => {
+    if (!searchInput.value.trim()) return;
+    try {
+      const aiResults = await fetchAISuggestions(q);
+      currentAiSuggestions = aiResults;
+      renderSuggestions(getPastMatches(q), aiResults, false);
+    } catch (e) {
+      renderSuggestions(getPastMatches(q), [], false);
+    } finally {
+      searchSpinner.classList.remove('show');
+    }
+  }, 400);
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addItemFromInput();
+  if (e.key === 'Escape') suggestionsEl.style.display = 'none';
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) suggestionsEl.style.display = 'none';
+});
+
+/* ══════════════════════════════════════════════
+   CART OPERATIONS
+══════════════════════════════════════════════ */
+function selectSug(name, emoji, meta) {
+  searchInput.value = name;
+  suggestionsEl.style.display = 'none';
+  searchSpinner.classList.remove('show');
+  clearTimeout(searchDebounceTimer);
+  addItem(name, emoji, meta);
+}
+
+function addItemFromInput() {
+  const v = searchInput.value.trim();
+  if (!v) return;
+  const pastMatch = PAST_ORDERS.find(p => p.n.toLowerCase() === v.toLowerCase());
+  const aiMatch = currentAiSuggestions.find(p => p.name.toLowerCase() === v.toLowerCase());
+  const emoji = pastMatch?.e || aiMatch?.emoji || '🛍️';
+  const meta = pastMatch?.meta || (aiMatch ? `${aiMatch.category || 'Grocery'}${aiMatch.variant ? ' · ' + aiMatch.variant : ''}` : '');
+  addItem(v, emoji, meta);
+}
+
+function addItem(name, emoji, meta) {
+  if (cart.find(i => i.name.toLowerCase() === name.toLowerCase())) {
+    searchInput.value = ''; return;
+  }
+  cart.push({name, qty: 1, emoji: emoji || '🛍️', meta: meta || ''});
+  searchInput.value = '';
+  currentAiSuggestions = [];
+  renderCart();
+}
+
+function renderCart() {
+  const el = document.getElementById('cartList');
+  const countEl = document.getElementById('basketCount');
+  countEl.textContent = cart.length ? `(${cart.length} item${cart.length > 1 ? 's' : ''})` : '';
+  if (!cart.length) {
+    el.innerHTML = '<div class="cart-empty">🛍️ &nbsp;Nothing here yet — search above to add items</div>';
+    return;
+  }
+  el.innerHTML = cart.map((item, i) => `
+    <div class="chip">
+      <div class="chip-emoji">${item.emoji}</div>
+      <div class="chip-info">
+        <div class="chip-name">${item.name}</div>
+        ${item.meta ? `<div class="chip-sub">${item.meta}</div>` : ''}
+      </div>
+      <div class="qty-controls">
+        <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+        <div class="qty-display">${item.qty}</div>
+        <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+      </div>
+      <button class="chip-remove" onclick="removeItem(${i})" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function changeQty(i, d) {
+  cart[i].qty = Math.max(1, Math.min(20, cart[i].qty + d));
+  renderCart();
+}
+function removeItem(i) { cart.splice(i, 1); renderCart(); }
+
+/* ══════════════════════════════════════════════
+   PRICE COMPARISON
+══════════════════════════════════════════════ */
+async function runComparison() {
+  if (!cart.length) { alert('Add at least one item first.'); return; }
+  const ra = document.getElementById('resultsArea');
+  const btn = document.getElementById('compareBtn');
+  btn.disabled = true;
+  btn.textContent = 'Fetching prices…';
+  ra.innerHTML = `<div class="card loading"><span class="spinner"></span> Fetching real discounted prices across platforms…</div>`;
+
+  const itemList = cart.map(i => `${i.qty}× ${i.name}`).join(', ');
+
+  const prompt = `You are an Indian grocery price expert for quick-commerce in 2025.
+Items: ${itemList}
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "items": [
+    {
+      "name": "Product name with size/brand",
+      "qty": 1,
+      "unit": "500ml / 52pcs / 1kg etc",
+      "emoji": "🥛",
+      "blinkit": {"mrp": 100, "price": 82},
+      "swiggy":  {"mrp": 100, "price": 85},
+      "zepto":   {"mrp": 100, "price": 80}
+    }
+  ],
+  "coupon_boost": {
+    "platform": "zepto",
+    "suggestion": "Add Colgate 200g (₹89) to reach ₹999 on Zepto and unlock IDFC ₹100 off",
+    "unlocks_saving": 100
+  }
+}
+
+CRITICAL RULES:
+- "price" = ACTUAL selling price customers pay (after all discounts). NOT the MRP.
+- "mrp" = original Maximum Retail Price (the crossed-out number)
+- FMCG / baby / personal care: 30–55% off MRP is normal
+- Fresh produce / dairy: 5–15% off MRP
+- Prices vary 3–10% across platforms
+- Return only valid JSON`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{role: "user", content: prompt}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(c => c.text || '').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    renderResults(parsed, ra);
+  } catch (err) {
+    ra.innerHTML = `<div class="card"><p class="error-msg">Could not fetch prices. Please try again.</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Find Best Prices →';
+  }
+}
+
+/* ══════════════════════════════════════════════
+   RENDER RESULTS
+══════════════════════════════════════════════ */
+function pctOff(mrp, price) {
+  if (!mrp || mrp <= price) return 0;
+  return Math.round((1 - price / mrp) * 100);
+}
+
+function renderResults(data, container) {
+  const items = data.items || [];
+  const P = ['blinkit','swiggy','zepto'];
+  const L = {blinkit:'Blinkit', swiggy:'Swiggy', zepto:'Zepto'};
+  const D = {blinkit:'#F8CE00', swiggy:'#FC8019', zepto:'#a78bfa'};
+
+  const totals = {}, mrpTotals = {};
+  P.forEach(p => {
+    totals[p]    = items.reduce((s,i) => s + (i[p]?.price||0)*(i.qty||1), 0);
+    mrpTotals[p] = items.reduce((s,i) => s + (i[p]?.mrp||i[p]?.price||0)*(i.qty||1), 0);
+  });
+  const minT  = Math.min(...Object.values(totals));
+  const bestP = P.find(p => totals[p] === minT);
+
+  /* Best combo */
+  let comboTotal = 0, comboMrp = 0;
+  const combos = items.map(item => {
+    const qty  = item.qty || 1;
+    const best = P.reduce((a,b) => (item[a]?.price||Infinity) < (item[b]?.price||Infinity) ? a : b);
+    const d    = item[best];
+    const price = (d?.price||0)*qty, mrp = (d?.mrp||d?.price||0)*qty;
+    comboTotal += price; comboMrp += mrp;
+    return {name:item.name, emoji:item.emoji||'🛍️', unit:item.unit, qty, platform:L[best], platKey:best, dot:D[best], price, mrp};
+  });
+  const numPlats = new Set(combos.map(c=>c.platKey)).size;
+  const savedVsBest = Math.max(0, Math.round(minT - comboTotal));
+  const savedVsMrp  = Math.max(0, Math.round(comboMrp - comboTotal));
+
+  /* Applicable card offers */
+  const offerMap = {};
+  P.forEach(p => {
+    CARD_OFFERS.filter(o => o.platform===p || o.platform==='all').forEach(o => {
+      if (totals[p] >= o.minOrder) {
+        const saving = Math.min(Math.round(totals[p]*o.rate), o.cap);
+        if (saving > 0 && (!offerMap[o.id] || offerMap[o.id].saving < saving))
+          offerMap[o.id] = {...o, saving};
+      }
+    });
+  });
+  const topOffers = Object.values(offerMap).sort((a,b) => b.saving-a.saving).slice(0,3);
+  const bestOfferSaving = topOffers.length ? topOffers[0].saving : 0;
+
+  let html = '';
+
+  /* ── PLATFORM TOTALS ── */
+  html += `<div class="card">
+  <div class="sec-head"><span class="sec-icon">📊</span><span class="sec-title">Platform totals (selling price)</span></div>
+  <div class="platform-row">`;
+  P.forEach(p => {
+    const off = pctOff(mrpTotals[p], totals[p]);
+    html += `<div class="pcard${p===bestP?' best':''}">
+      <div class="pcard-head"><div class="pdot" style="background:${D[p]}"></div><span class="pname">${L[p]}</span></div>
+      <div class="ptotal">₹${Math.round(totals[p])}</div>
+      ${mrpTotals[p]>totals[p] ? `<div class="pmrp">MRP ₹${Math.round(mrpTotals[p])}</div>` : ''}
+      ${off>0 ? `<div class="poff">${off}% off</div>` : ''}
+      ${p===bestP ? `<div class="pbest-tag">✓ Cheapest</div>` : ''}
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  /* ── ITEM BREAKDOWN ── */
+  html += `<div class="card">
+  <div class="sec-head"><span class="sec-icon">📋</span><span class="sec-title">Item Breakdown</span></div>
+  <table class="bk-table">
+    <thead><tr>
+      <th style="width:30%">Item</th>
+      <th style="width:23%">Blinkit</th>
+      <th style="width:23%">Swiggy</th>
+      <th style="width:23%">Zepto</th>
+    </tr></thead><tbody>`;
+
+  items.forEach(item => {
+    const qty    = item.qty || 1;
+    const prices = P.map(p => item[p]?.price || Infinity);
+    const minP   = Math.min(...prices.filter(x => x < Infinity));
+    const maxP   = Math.max(...prices.filter(x => x < Infinity));
+    html += `<tr><td>
+      <div class="item-n">${item.emoji||''} ${item.name}</div>
+      <div class="item-u">${item.unit||''}</div>
+      <div class="item-qty-badge">×${qty}</div>
+    </td>`;
+    P.forEach(p => {
+      const d = item[p];
+      if (!d) { html += `<td><span style="color:var(--text3);font-size:11px">N/A</span></td>`; return; }
+      const total = Math.round(d.price*qty), mrpT = Math.round((d.mrp||d.price)*qty);
+      const off   = pctOff(d.mrp, d.price);
+      const cls   = d.price===minP ? 'best' : d.price===maxP ? 'worst' : '';
+      html += `<td>
+        <span class="psell ${cls}">₹${total}</span>
+        ${d.mrp&&d.mrp>d.price ? `<span class="pmrp-s">₹${mrpT}</span>` : ''}
+        ${off>0 ? `<span class="poff-s">${off}% off</span>` : ''}
+        <span class="punit-s">₹${d.price}/unit</span>
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  /* ── SPLIT STRATEGY ── */
+  html += `<div class="card">
+  <div class="sec-head"><span class="sec-icon">🎯</span><span class="sec-title">Best split strategy${numPlats>1 ? ' — '+numPlats+' platforms' : ''}</span></div>`;
+  combos.forEach(c => {
+    html += `<div class="split-item">
+      <div>
+        <div class="si-name">${c.emoji} ${c.name}</div>
+        <div class="si-from">
+          <span class="si-dot" style="background:${c.dot}"></span>
+          <span class="si-plat">${c.platform}</span>
+          <span class="si-qty">×${c.qty}${c.unit ? ' · '+c.unit : ''}</span>
+        </div>
+      </div>
+      <div class="si-right">
+        <div class="si-price">₹${Math.round(c.price)}</div>
+        ${c.mrp>c.price ? `<div class="si-mrp">₹${Math.round(c.mrp)}</div>` : ''}
+      </div>
+    </div>`;
+  });
+  html += `<div class="split-footer">
+    <div>
+      <div class="sf-label">You pay (split)</div>
+      ${savedVsBest>0 ? `<div class="sf-savings">💰 saves ₹${savedVsBest} vs single app</div>` : ''}
+    </div>
+    <div>
+      <div class="sf-total">₹${Math.round(comboTotal)}</div>
+      ${savedVsMrp>0 ? `<div class="sf-saved">₹${savedVsMrp} saved off MRP</div>` : ''}
+    </div>
+  </div></div>`;
+
+  /* ── CARD OFFERS ── */
+  if (topOffers.length) {
+    html += `<div class="card">
+    <div class="sec-head"><span class="sec-icon">💳</span><span class="sec-title">Your card offers</span></div>`;
+    topOffers.forEach(o => {
+      html += `<div class="offer-card">
+        <div class="offer-head">
+          <div class="offer-name">${o.card}</div>
+          <div class="offer-save">Save ₹${o.saving}</div>
+        </div>
+        <div class="offer-desc">${o.desc}</div>
+        <div class="offer-tags">
+          ${o.tags.map(t=>`<span class="tag tag-platform">${t}</span>`).join('')}
+          ${o.minOrder>0 ? `<span class="tag tag-min">Min ₹${o.minOrder}</span>` : ''}
+          <span class="tag tag-action">${o.condition}</span>
+        </div>
+      </div>`;
+    });
+    html += `<div style="margin-top:10px;padding:10px 12px;background:var(--green-bg);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--text2)">After best card offer</span>
+      <span style="font-size:16px;font-weight:700;color:var(--green)">₹${Math.round(comboTotal - bestOfferSaving)}</span>
+    </div></div>`;
+  }
+
+  /* ── COUPON BOOST ── */
+  if (data.coupon_boost?.suggestion) {
+    const cb = data.coupon_boost;
+    html += `<div class="boost-card">
+      <div class="boost-head"><span style="font-size:16px">✨</span><span class="boost-title">Add 1 item to unlock bigger savings</span></div>
+      <div class="boost-body">${cb.suggestion}</div>
+      ${cb.unlocks_saving ? `<div class="boost-cta">Saves extra ₹${cb.unlocks_saving}</div>` : ''}
+    </div>`;
+  }
+
+  /* ── SAVINGS SUMMARY ── */
+  const finalPay = Math.round(comboTotal - bestOfferSaving);
+  const totalSaved = Math.round(comboMrp - finalPay);
+  html += `<div class="card">
+    <div class="sec-head"><span class="sec-icon">💰</span><span class="sec-title">Your savings summary</span></div>
+    <div class="summary-row"><span style="color:var(--text2)">Total MRP</span><span style="color:var(--text3);text-decoration:line-through">₹${Math.round(comboMrp)}</span></div>
+    <div class="summary-row"><span style="color:var(--text2)">After platform discounts</span><span>₹${Math.round(comboTotal)}</span></div>
+    ${topOffers.length ? `<div class="summary-row"><span style="color:var(--text2)">After ${topOffers[0].card}</span><span style="color:var(--green)">₹${finalPay}</span></div>` : ''}
+    <div class="summary-row total"><span>Total saved off MRP</span><span style="color:var(--green)">₹${totalSaved}</span></div>
+  </div>`;
+
+  html += `<p class="note">Prices are AI-estimated from real 2025 market data. Card offers based on published bank terms — verify at checkout.</p>`;
+
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>
