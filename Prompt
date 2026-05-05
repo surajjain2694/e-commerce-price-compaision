@@ -1,0 +1,39 @@
+Build a smart grocery price comparison web app (single HTML file) with the following features:
+Core functionality:
+
+Search bar with autocomplete suggestions for common Indian grocery items (bread, milk, eggs, fruits, diapers, FMCG etc.)
+Add multiple items to a basket with − / qty / + stepper controls (clearly visible quantity per item)
+On compare, use the Claude API (claude-sonnet-4-20250514) to fetch realistic 2025 Indian market prices for each item across Blinkit, Swiggy Instamart, and Zepto
+
+Pricing display:
+
+Always show the actual selling price (after discount), NOT the MRP
+Show MRP crossed out alongside the selling price
+Show discount % badge (e.g. "49% off") per item per platform
+Example: Mamy Poko XL 52pcs → MRP ₹1352, selling price ₹686
+FMCG/baby/personal care: 30–55% off MRP. Fresh produce/dairy: 5–15% off MRP
+
+Comparison views:
+
+Platform total cards (Blinkit / Swiggy / Zepto) showing total cost, MRP, discount %, and "Best deal" badge
+Item breakdown table with per-unit price, selling total, MRP, discount % — green = cheapest, grey = most expensive
+Split platform strategy: suggest buying each item from whichever platform is cheapest, show combined total and savings vs. single app
+
+Card offers (user has Amazon Pay, IDFC First, HDFC cards):
+
+HDFC Swiggy CC: 10% cashback on Swiggy Instamart (cap ₹1500/month), 5% on Blinkit (cap ₹250)
+IDFC FIRST SWYP: 10% instant off on Zepto (cap ₹100, min ₹750); ₹100 flat off Zepto on Fridays (min ₹999)
+Amazon Pay: 5% cashback for Prime members when paying via Amazon Pay on Blinkit
+Show applicable offers based on the user's basket total per platform, calculate actual rupee savings, show "after card offer" final price
+
+Coupon unlock tip:
+
+AI should suggest adding one cheap product to hit a round threshold (₹750 or ₹999) to unlock a bigger card discount
+Example: "Add Colgate 200g (₹89) to Zepto to hit ₹999 and unlock IDFC ₹100 off"
+
+Final savings summary:
+
+Show: MRP total → after platform discounts → after best card offer → total rupees saved
+
+Design: Dark theme, DM Sans font, mobile-friendly, clean card-based layout with color-coded platform dots (Blinkit yellow, Swiggy orange, Zepto purple)
+Tech: Single index.html file, vanilla JS, Claude API via fetch() for price estimation, no backend needed
